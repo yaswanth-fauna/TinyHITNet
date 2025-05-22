@@ -13,20 +13,26 @@ This is a **Pytorch** implementations of *"HITNet: Hierarchical Iterative Tile R
 | **StereoNet**                 | 0.7566 | 50.0250 | 91.0111 | 96.2597 | 106.7765 | [ckpt](ckpt/stereo_net.ckpt) | 8x downsample |
 
 
-### Training
-
-1) Compile and install cuda op
+### Setup
+1) Create the conda envrironment
     ```shell
+    conda env create -f environment.yml
+    ```
+
+2) Install cuda op inside conda env
+    ```shell
+    conda activate tinyhitnet
     pip install ./ext_op
     ```
 
-2) Replace dataset path in **preprocess/plane_fitting.py** and **script/hitnet_sf_finalpass.sh**
-
-3) Robust plane fitting 
-    ```
-    python preprocess/plane_fitting_sf.py
-    ```
-
+### Preprocess
+> **Note:** For the SceneFlow dataset, this step has **already been completed**. Preprocessed data is available on NAS. Please do not repeat this step for SceneFlow, as it will overwrite the existing data.
+1) Generate ground slant window hypotheses using plane fitting.  
+   ```shell
+   python preprocess/plane_fitting_sf.py
+   ```
+    
+### Training [Not Setup yet skip this for now]
 2) Training
     ```shell 
     bash script/hitnet_sf_finalpass.sh
@@ -34,17 +40,15 @@ This is a **Pytorch** implementations of *"HITNet: Hierarchical Iterative Tile R
 
 ### Evaluation
 
-1) Replace dataset path in **eval.py**
-
 1) Evaluation
     ```shell
-    python eval.py --model HITNet --ckpt ckpt/{ckpt_name} --data_type SceneFlow --data_root_val {path} --data_list_val lists/sceneflow_test.list
+    python eval.py --model HITNet_SF --ckpt ckpt/hitnet_sf_finalpass.ckpt --data_type SceneFlow --data_root_val /mnt/nas_mnt/depth_estimation/datasets/scene_flow/ --data_list_val lists/sceneflow_test.list
     ```
 
 ### Predict
 
 ```shell
-python predict.py --model HITNet --ckpt ckpt/{ckpt_name} --images {left.png} {right.png} --output {disp.png}
+python predict.py --model HITNet_SF --ckpt ckpt/{ckpt_name} --images {left.png} {right.png} --output {disp.png}
 ```
 
 ## Citation
