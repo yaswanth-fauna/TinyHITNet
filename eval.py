@@ -37,7 +37,7 @@ class EvalModel(pl.LightningModule):
         self.metric(pred["disp"], batch["disp"], mask)
         return
 
-    def test_epoch_end(self, outputs):
+    def on_test_epoch_end(self):
         print(self.metric.compute())
         return
 
@@ -54,26 +54,27 @@ if __name__ == "__main__":
     parser.add_argument("--data_list_val", type=str, nargs="+")
     parser.add_argument("--data_size_val", type=int, nargs=2, default=None)
     parser.add_argument("--data_augmentation", type=int, default=0)
+    parser.add_argument("--get_metrics", action="store_true")
     args = parser.parse_args()
 
     model = EvalModel(**vars(args)).eval()
-    ckpt = torch.load(args.ckpt)
+    ckpt = torch.load(args.ckpt, weights_only=False)
     if "state_dict" in ckpt:
         model.load_state_dict(ckpt["state_dict"])
     else:
         model.model.load_state_dict(ckpt)
 
-    dataset = build_dataset(args, training=False)
-    loader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size=1,
-        num_workers=2,
-    )
+    if args.get_metrics:
+        print("Loading dataset...")
+        dataset = build_dataset(args, training=False)
+        loader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=1,
+            num_workers=2,
+        )
 
-    trainer = pl.Trainer(
-        gpus=-1,
-        accelerator="ddp",
-        logger=False,
-        checkpoint_callback=False,
-    )
-    trainer.test(model, loader)
+        trainer = pl.Trainer(
+            accelerator="auto",
+            logger=False,
+        )
+        trainer.test(model, loader)
