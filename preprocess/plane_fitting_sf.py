@@ -7,7 +7,7 @@ import multiprocessing as mp
 
 from dataset.utils import readPFM, np2torch
 
-
+NUM_PROCESSES = 1 # it used to be 8 for data preprocesing
 def process(file_path):
     while True:
         for ids, lock in enumerate(process.lock_list):
@@ -37,11 +37,11 @@ def main(root, list_path):
     with open(list_path, "rt") as fp:
         file_list = [Path(line.strip()) for line in fp]
 
-    lock_list = [mp.Lock() for _ in range(8)]
-    with mp.Pool(8, process_init, [lock_list, root]) as pool:
+    lock_list = [mp.Lock() for _ in range(NUM_PROCESSES)]
+    with mp.Pool(NUM_PROCESSES, process_init, [lock_list, root]) as pool:
         list(tqdm.tqdm(pool.imap_unordered(process, file_list), total=len(file_list)))
 
 
 if __name__ == "__main__":
-    main("/home/tiger/SceneFlow", "lists/sceneflow_train.list")
-    main("/home/tiger/SceneFlow", "lists/sceneflow_test.list")
+    main("/mnt/nas_mnt/depth_estimation/datasets/scene_flow/", "lists/sceneflow_train_fly3d_only.list")
+    main("/mnt/nas_mnt/depth_estimation/datasets/scene_flow/", "lists/sceneflow_test.list")
