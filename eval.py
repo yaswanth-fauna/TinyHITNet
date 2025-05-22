@@ -34,10 +34,10 @@ class EvalModel(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         pred = self(batch["left"], batch["right"])
         mask = (batch["disp"] < self.max_disp) & (batch["disp"] > 1e-3)
-        self.metric(pred["disp"], batch["disp"], mask)
+        self.metric(pred, batch["disp"], mask)
         return
 
-    def test_epoch_end(self, outputs):
+    def on_test_epoch_end(self):
         print(self.metric.compute())
         return
 
@@ -54,26 +54,49 @@ if __name__ == "__main__":
     parser.add_argument("--data_list_val", type=str, nargs="+")
     parser.add_argument("--data_size_val", type=int, nargs=2, default=None)
     parser.add_argument("--data_augmentation", type=int, default=0)
+    parser.add_argument("--eval_metrics", action="store_true")
+    parser.add_argument("--export_onnx", action="store_true")
+    parser.add_argument("--onnx_file_name", type=str, default="super_resolution.onnx")
     args = parser.parse_args()
 
     model = EvalModel(**vars(args)).eval()
-    ckpt = torch.load(args.ckpt)
+    ckpt = torch.load(args.ckpt, weights_only=False)
     if "state_dict" in ckpt:
         model.load_state_dict(ckpt["state_dict"])
     else:
         model.model.load_state_dict(ckpt)
+    
+    if args.export_onnx:
+        print("Exporting to ONNX format...")
+        # Input to the model
+        x = torch.randn(1, 3, 360, 640, requires_grad=False)
+        torch_out = model(x, x)
 
-    dataset = build_dataset(args, training=False)
-    loader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size=1,
-        num_workers=2,
-    )
+        # Export the model
+        torch.onnx.export(model,               # model being run
+                        (x, x),                         # model input (or a tuple for multiple inputs)
+                        args.onnx_file_name,   # where to save the model (can be a file or file-like object)
+                        export_params=True,        # store the trained parameter weights inside the model file
+                        opset_version=17,          # the ONNX version to export the model to
+                        do_constant_folding=True,  # whether to execute constant folding for optimization
+                        input_names = ['left', 'right'],   # the model's input names
+                        output_names = ['output'], # the model's output names
+                        dynamic_axes={'left' : {0 : 'batch_size'},
+                                      'right' : {0 : 'batch_size'},    # variable length axes
+                                    'output' : {0 : 'batch_size'}})
+        
 
-    trainer = pl.Trainer(
-        gpus=-1,
-        accelerator="ddp",
-        logger=False,
-        checkpoint_callback=False,
-    )
-    trainer.test(model, loader)
+    if args.eval_metrics:
+        print("Loading dataset...")
+        dataset = build_dataset(args, training=False)
+        loader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=1,
+            num_workers=2,
+        )
+
+        trainer = pl.Trainer(
+            accelerator="auto",
+            logger=False,
+        )
+        trainer.test(model, loader)
