@@ -40,9 +40,20 @@ This is a **Pytorch** implementations of *"HITNet: Hierarchical Iterative Tile R
 
 ### Evaluation
 
-1) Evaluation
+1) For Evaluation use `eval_metrics` option
     ```shell
-    python eval.py --model HITNet_SF --ckpt ckpt/hitnet_sf_finalpass.ckpt --data_type SceneFlow --data_root_val /mnt/nas_mnt/depth_estimation/datasets/scene_flow/ --data_list_val lists/sceneflow_test.list
+    python eval.py --model HITNet_SF --ckpt ckpt/hitnet_sf_finalpass.ckpt --data_type SceneFlow --data_root_val /mnt/nas_mnt/depth_estimation/datasets/scene_flow/ --data_list_val lists/sceneflow_test.list --eval_metrics
+    ```
+
+### ONNX Export
+1) To export to onnx use `export_onnx` option
+    ``` shell
+    python eval.py --model HITNet_SF --ckpt ckpt/hitnet_sf_finalpass.ckpt --data_type SceneFlow --data_root_val /mnt/nas_mnt/depth_estimation/datasets/scene_flow/ --data_list_val lists/sceneflow_test.list --export_onnx
+    ```
+
+2) Visualize the onnx using the netron
+    ```shell
+    netron super_resolution.onnx
     ```
 
 ### Predict
